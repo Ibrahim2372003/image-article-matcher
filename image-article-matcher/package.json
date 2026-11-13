@@ -1,0 +1,28 @@
+{
+  "name": "image-article-matcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Image-to-article semantic matcher with a deterministic Mismatch Guard (Express + PostgreSQL/pgvector + Gemini behind a provider interface).",
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --env-file=.env src/server.js",
+    "migrate": "node --env-file=.env src/db/migrate.js",
+    "seed": "node --env-file=.env src/scripts/seed.js",
+    "eval": "node eval/run-eval.js --provider mock",
+    "eval:gemini": "node --env-file=.env eval/run-eval.js --provider gemini",
+    "dataset:build": "node eval/build-dataset.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.13.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.0"
+  }
+}
