@@ -1,0 +1,14 @@
+name: Image–Article Matcher — AI Content Mismatch Guard
+repository: https://github.com/Ibrahim2372003/image-article-matcher
+summary: >
+  Backend-focused project that judges whether an image fits an article using
+  structured AI output, embeddings, and a deterministic Mismatch Guard policy.
+stack: [Node.js, Express, TypeScript, React, Vite, PostgreSQL, pgvector, Zod, Redis, BullMQ, Gemini, Ollama]
+deliverables:
+  - { id: m1, name: Repository foundation, status: done }
+  - { id: m2, name: DB schema, migrations, Docker, status: planned }
+  - { id: m3, name: Provider abstraction + validated AI output, status: planned }
+  - { id: m4, name: Semantic matching + deterministic guard, status: planned }
+  - { id: m5, name: Background jobs + persistence, status: planned }
+  - { id: m6, name: Review APIs + frontend, status: planned }
+  - { id: m7, name: Dataset, evaluation, tests, docs, status: planned }
