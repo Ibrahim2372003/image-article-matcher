@@ -1,0 +1,6 @@
+node_modules
+dist
+coverage
+legacy
+package-lock.json
+*.md
