@@ -6,7 +6,7 @@ summary: >
 stack: [Node.js, Express, TypeScript, React, Vite, PostgreSQL, pgvector, Zod, Redis, BullMQ, Gemini, Ollama]
 deliverables:
   - { id: m1, name: Repository foundation, status: done }
-  - { id: m2, name: DB schema, migrations, Docker, status: planned }
+  - { id: m2, name: DB schema, migrations, Docker, status: implemented-unreviewed }
   - { id: m3, name: Provider abstraction + validated AI output, status: planned }
   - { id: m4, name: Semantic matching + deterministic guard, status: planned }
   - { id: m5, name: Background jobs + persistence, status: planned }

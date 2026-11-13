@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Image–Article Matcher — AI Content Mismatch Guard (monorepo)",
+  "description": "Image\u2013Article Matcher \u2014 AI Content Mismatch Guard (monorepo)",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -19,7 +19,9 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "dev:api": "npm run dev -w @iam/api",
-    "dev:web": "npm run dev -w @iam/web"
+    "dev:web": "npm run dev -w @iam/web",
+    "db:migrate": "npm run db:migrate -w @iam/api",
+    "db:status": "npm run db:status -w @iam/api"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

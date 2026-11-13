@@ -13,6 +13,11 @@ export const EnvSchema = z.object({
   OLLAMA_BASE_URL: z.string().url().default("http://localhost:11434"),
   API_KEY: z.string().min(16, "API_KEY must be at least 16 characters").optional(),
   MAX_UPLOAD_BYTES: num(5 * 1024 * 1024).pipe(z.number().int().positive()),
+  DB_POOL_MAX: num(10).pipe(z.number().int().min(1).max(100)),
+  DB_IDLE_TIMEOUT_MS: num(30_000).pipe(z.number().int().min(0)),
+  DB_CONNECT_TIMEOUT_MS: num(5_000).pipe(z.number().int().min(1)),
+  DB_STATEMENT_TIMEOUT_MS: num(30_000).pipe(z.number().int().min(0)),
+  DB_SSL: z.enum(["disable", "require"]).default("disable"),
 });
 export type Env = z.infer<typeof EnvSchema>;
 
