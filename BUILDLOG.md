@@ -6,5 +6,5 @@
 - Decision: preserve it via `git mv` to `legacy/v0-js/` rather than overwrite or delete; port incrementally (`docs/legacy-migration.md`).
 - Decision: npm workspaces (pnpm not installed in the build environment); lockfile committed.
 - Created `packages/shared` (constants, Zod schemas ported from prototype), `apps/api` (env validation, Express app, `/health`), `apps/web` (Vite/React shell), `infra/docker-compose.yml`, ESLint/Prettier/Vitest config, `.env.example`.
-- Known blockers: no Docker in the build environment; no GitHub write credentials were available (see EVIDENCE.md).
+- Known blockers: no Docker in the build environment; no GitHub write credentials: `git push` failed with "could not read Username"; work preserved locally and in a git bundle.
 - Next: Milestone 2 — DB schema, migrations, Docker infra.

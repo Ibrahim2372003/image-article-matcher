@@ -15,4 +15,4 @@ Only items marked VERIFIED were actually run (build sandbox, Node v22.23.4, npm 
 | Gemini / Ollama integration                            | UNVERIFIED | not implemented yet; legacy code never run            |
 | Legacy prototype (`legacy/v0-js`)                      | UNVERIFIED | not executed; its test/eval dirs are missing          |
 | Evaluation metrics, dataset licenses                   | NONE       | no dataset or evaluation exists yet                   |
-| Push to GitHub `main`                                  | see below  | recorded in the milestone report                      |
+| Push to GitHub `main`                                  | FAILED     | `fatal: could not read Username for https://github.com` (no credentials in sandbox); commit exists locally only |
