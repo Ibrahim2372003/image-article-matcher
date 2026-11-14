@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 const num = (d: number) => z.coerce.number().default(d);
+/** Optional numeric override: unset/empty stays undefined; anything else must be a finite number. */
+const optNum = z.preprocess(
+  (v) => (v === undefined || v === "" ? undefined : v),
+  z.coerce.number().finite().optional(),
+);
 
 export const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -16,6 +21,10 @@ export const EnvSchema = z.object({
   AI_TIMEOUT_MS: num(30_000).pipe(z.number().int().min(1_000).max(300_000)),
   API_KEY: z.string().min(16, "API_KEY must be at least 16 characters").optional(),
   MAX_UPLOAD_BYTES: num(5 * 1024 * 1024).pipe(z.number().int().positive()),
+  GUARD_MIN_CONFIDENCE: optNum,
+  GUARD_MIN_SIMILARITY: optNum,
+  GUARD_MIN_MARGIN: optNum,
+  GUARD_MIN_SHARED_TAGS: optNum,
   DB_POOL_MAX: num(10).pipe(z.number().int().min(1).max(100)),
   DB_IDLE_TIMEOUT_MS: num(30_000).pipe(z.number().int().min(0)),
   DB_CONNECT_TIMEOUT_MS: num(5_000).pipe(z.number().int().min(1)),

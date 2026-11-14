@@ -26,3 +26,14 @@
 - Added env vars `OLLAMA_VISION_MODEL`, `OLLAMA_EMBEDDING_MODEL`, `AI_TIMEOUT_MS`.
 - Not done by design: matching guard, queue, review APIs, wiring providers into the server.
 - Open: `npm audit` reports a high-severity advisory in `zod@3.25.76` (pre-existing, fix is a major upgrade to zod 4); not changed.
+
+## Milestone 4 — Semantic matching and deterministic Mismatch Guard (2026-11-14)
+
+- Built on the actual `origin/main` (`f61fb20`). Ported the legacy guard/matching idea to TypeScript (`apps/api/src/matching/`); legacy untouched.
+- **Architecture conflict resolved:** legacy used separate suggestion/reason tables; the current schema is job-centric. Decision: store match results as `analysis_jobs` rows (key `suggest:<image>:<article>`) so the existing reviews and audit trail work; no parallel suggestions table.
+- **One migration (`002_matching.sql`), justified:** `image_classifications` and `article_embeddings` did not exist (classification storage; vectors to rank articles) and guard signals for accepted matches had no column (`guard_signals`, `embedding_model`).
+- **Policy improvement:** reasons have severity. Uncertainty (`LOW_CLASSIFICATION_CONFIDENCE`, `AMBIGUOUS_MATCH`) -> `review`; wrongness (`BELOW_SIMILARITY_THRESHOLD`, `CATEGORY_MISMATCH`) -> `reject`. Legacy rejected everything. This needs the owner's approval.
+- Embedding compatibility is model **and** task type; incompatible spaces are never compared.
+- Audit fixes made during development: batch persistence made atomic (one transaction); row lock taken before the review check in a separate statement; `ensureImageEmbedding` now throws `MissingPrerequisiteError` for a missing classification.
+- Mutation checks: removing the row lock, ignoring reviews, and per-row commits were each caught by the integration tests.
+- Not done: API endpoints, job queue, review endpoints, calibration of thresholds, live provider calls.

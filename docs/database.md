@@ -33,7 +33,19 @@ Migrations are **never** run automatically when the API starts. `.env` at the re
 
 Key constraints: `completed`/`needs_review` require a decision; `needs_review` implies decision `review`; any decision requires `policy_version`; `failed` requires an error code; `attempts <= max_attempts`. Deleting an article, image or job that is referenced is restricted. Tests assert the SQL stays in sync with `EMBEDDING_DIMENSION`, `JOB_STATUSES` and `DECISIONS` from `@iam/shared`.
 
-Article embeddings are not stored yet; the matching design (milestone 4) will add a migration if needed.
+## Schema (002, milestone 4)
+
+| Change | Why |
+| --- | --- |
+| `image_classifications` | validated vision output per image, so candidates are not re-classified; unique per (image, provider, model) |
+| `article_embeddings` | `vector(768)` + HNSW cosine index, unique per (article, model); needed to rank articles for an image |
+| `analysis_jobs.guard_signals`, `analysis_jobs.embedding_model` | guard signals (also for accepted matches) and the embedding model compared |
+
+Match results reuse `analysis_jobs`, `reviews` and `job_audit_events`; no parallel suggestions table. See `docs/policy.md`.
+
+### Integration tests
+
+`apps/api/test/matching/integration.test.ts` runs only when `TEST_DATABASE_URL` is set. It creates a uniquely named schema (`it_<random>`), applies all migrations inside it, and drops only that schema afterwards; `public` and existing data are not touched. Use a scratch database anyway.
 
 ## Connection module
 

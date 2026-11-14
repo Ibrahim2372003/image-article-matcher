@@ -9,6 +9,14 @@ export type Decision = (typeof DECISIONS)[number];
 export const JOB_STATUSES = ["queued", "processing", "completed", "failed", "needs_review"] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
+export const REASON_CODES = {
+  LOW_CLASSIFICATION_CONFIDENCE: "LOW_CLASSIFICATION_CONFIDENCE",
+  BELOW_SIMILARITY_THRESHOLD: "BELOW_SIMILARITY_THRESHOLD",
+  CATEGORY_MISMATCH: "CATEGORY_MISMATCH",
+  AMBIGUOUS_MATCH: "AMBIGUOUS_MATCH",
+} as const;
+export type ReasonCode = (typeof REASON_CODES)[keyof typeof REASON_CODES];
+
 export const MATCH_TOP_K = 3;
 export const POLICY_VERSION = "guard-v1";
 
