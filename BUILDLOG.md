@@ -17,3 +17,12 @@
 - Decision: audit immutability and double-review protection enforced in the database, not only in application code.
 - Decision: article embeddings deferred to milestone 4.
 - Not done by design: AI providers, queues, review endpoints.
+
+## Milestone 3 — AI provider layer (2026-11-14)
+
+- Audited the legacy JS providers (`legacy/v0-js/src/ai`, services). Kept its contract: providers return RAW output; validation and decisions live outside. Ported to TypeScript with typed errors and a validation service. Did not copy the legacy hand-written Gemini `fetch` client.
+- Decision: official `@google/genai` SDK for Gemini (wrapped by a minimal injectable interface); plain `fetch` for Ollama (no extra dependency).
+- Verified from Google's docs: `gemini-embedding-001` defaults to 3072 dims; 768 needs `outputDimensionality`; non-3072 output must be L2-normalized by the caller. Implemented explicitly; vectors are never padded/truncated.
+- Added env vars `OLLAMA_VISION_MODEL`, `OLLAMA_EMBEDDING_MODEL`, `AI_TIMEOUT_MS`.
+- Not done by design: matching guard, queue, review APIs, wiring providers into the server.
+- Open: `npm audit` reports a high-severity advisory in `zod@3.25.76` (pre-existing, fix is a major upgrade to zod 4); not changed.
