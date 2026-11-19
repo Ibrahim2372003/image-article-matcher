@@ -1,6 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
-import { mkdir, open, rename, stat, unlink, realpath, lstat } from "node:fs/promises";
-import path from "node:path";
+import {
+  mkdir,
+  open,
+  link,
+  stat,
+  unlink,
+  realpath,
+  lstat,
+  readFile,
+} from "node:fs/promises";import path from "node:path";
 import { ImagePathSchema } from "@iam/shared";
 import { ImageStorageError } from "./errors.js";
 import { detectImageType, type DetectedImage } from "./magicBytes.js";
