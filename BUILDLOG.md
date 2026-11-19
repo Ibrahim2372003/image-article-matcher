@@ -37,3 +37,14 @@
 - Audit fixes made during development: batch persistence made atomic (one transaction); row lock taken before the review check in a separate statement; `ensureImageEmbedding` now throws `MissingPrerequisiteError` for a missing classification.
 - Mutation checks: removing the row lock, ignoring reviews, and per-row commits were each caught by the integration tests.
 - Not done: API endpoints, job queue, review endpoints, calibration of thresholds, live provider calls.
+
+## Milestone 5 — Asynchronous job pipeline and HTTP API (2026-11-14)
+
+- Built on `b074bfc`. PostgreSQL is the source of truth; BullMQ/Redis only deliver job ids. Separate worker process.
+- **Approved decisions applied:** failed jobs have `decision = NULL`; `kind` column; uploads only (no URL ingestion); API key on both endpoints (fail closed); minimal API (submit, status, health/ready); no review/listing/dashboard endpoints.
+- Migration 003 backfills before adding constraints and is transactional; tested against M4-style data and against violating data (clean rollback).
+- Exact pair evaluation (`evaluatePair`) because a submitted article may not be in M4's top-K; guard semantics unchanged and asserted equal to the top-K path for every article (SQL rank == JS rank).
+- Attempt number as a fencing token; guarded `UPDATE`s plus a database trigger; reconciler for the insert-succeeded / publish-failed window.
+- **Defects found by testing real behaviour and fixed:** (1) BullMQ waits forever when Redis is down, so `POST /jobs` would hang instead of answering 503: queue calls now have a deadline, and the reconciler skips a pass when the queue is unreachable; (2) the reconciler's connection could block graceful shutdown: it now fails fast; (3) NFKC normalisation could push a valid category past the database limit (opaque 500): the canonical form is re-validated (400); (4) a stale M4 integration assertion hard-coded the migration list.
+- Mutation checks: removing the fencing token, the claim row lock, the idempotency-conflict check, the queue deadline, the canonical validation and the reconciler's queue check were each caught by tests.
+- Not verified: BullMQ/ioredis behaviour against a real Redis (tests written, gated on `TEST_REDIS_URL`, never run in the sandbox).

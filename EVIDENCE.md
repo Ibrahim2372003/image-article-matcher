@@ -34,3 +34,26 @@ Provider calls use fakes/mock: **no real Gemini or Ollama call was made.** Datab
 | Matching exposed via API or background job | NOT IMPLEMENTED | milestones 5-6 |
 | Guard thresholds calibrated against real embeddings | NOT DONE | defaults are uncalibrated; no evaluation exists |
 | Matching quality with Gemini/Ollama embeddings | UNVERIFIED | mock embeddings are lexical hashes only |
+
+## Milestone 5 (build sandbox, 2026-11-14)
+
+Database checks ran on a temporary PostgreSQL 16.15 + pgvector 0.6.0 (Ubuntu packages) in the sandbox, in disposable `it_<random>` schemas, **not your Docker database**. **No Redis was available: no test ran against real Redis.** AI providers are fakes/mock.
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| `typecheck`, `lint`, `build` | VERIFIED | all exit 0 |
+| Full suite, no services | VERIFIED | 28 files passed, 4 skipped; 489 tests passed, 50 skipped (44 database + 6 Redis) |
+| Full suite with scratch PostgreSQL | VERIFIED | 31 files passed, 1 skipped; 533 passed, 6 skipped (the Redis file); no leftover schemas; `public` untouched (before/after fingerprint) |
+| Migration 003 on M4-style data (backfill, data preserved, constraints, re-run no-op), on an empty DB, and over a violating row (rolls back completely) | VERIFIED | `pgJobStore.integration.test.ts` |
+| M4 matching tests still pass under schema 003 | VERIFIED | `matching/integration.test.ts` (11) |
+| Job store: idempotent create, 12 concurrent creates -> 1 job, key conflict, claim/attempt bounds, 12 concurrent claims, stale-worker fencing, terminal immutability, DB transition guards, usage accounting (unknown cost stays NULL), reconcile candidates | VERIFIED | 29 real-database tests |
+| Exact pair evaluation equals the top-K path for every article on real pgvector | VERIFIED | `pair.integration.test.ts` (4) |
+| Processor, retry/backoff bounds, permanent vs transient, crash recovery, duplicate delivery, stale worker, no accept on failure | VERIFIED (fakes) | `processor.test.ts` (20) |
+| Queue adapter, reconciler, worker mapping, submit service incl. publish-failure recovery | VERIFIED (fakes) | `queue/reconciler/submit` tests |
+| HTTP API: auth (fail closed), validation, 413/415, MIME spoofing, rate limit, idempotency, 503 recovery, error hygiene, readiness | VERIFIED | `http/api.test.ts` (35) over a real HTTP server with fake stores |
+| Image storage: magic bytes, content addressing, atomic write, traversal/symlink, temp cleanup | VERIFIED | `storage` tests (41) |
+| Redis-down behaviour of the real BullMQ client: publish deadline works (rejected at the deadline), `ping` false, no crash; real `Worker` accepts the ioredis 6 options and closes | VERIFIED (manual smoke, closed port, no Redis traffic) | script output; not an automated test |
+| BullMQ 6.7.6 / ioredis 6.0.0 against a REAL Redis: delivery, retry/backoff, no retry of permanent failures, re-publication | **UNVERIFIED** | `queue.integration.test.ts` (6 tests) skipped: no Redis |
+| Migration 003 and the pipeline against YOUR Docker database | **UNVERIFIED** | run the pre-flight in `docs/database.md`, then `npm run db:migrate` |
+| Real Gemini/Ollama in the pipeline | **UNVERIFIED** | not run |
+| Cost figures | NONE | no prices configured; cost stays unknown |

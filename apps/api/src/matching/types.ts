@@ -48,6 +48,15 @@ export interface EvaluationRecord {
 /** created: new row; updated: re-evaluated an unreviewed row; preserved: a human review exists, row untouched. */
 export type SaveOutcome = "created" | "updated" | "preserved";
 
+export interface PairContext {
+  /** Cosine similarity of the target; NaN when a vector is degenerate (the guard rejects non-finite scores). */
+  similarity: number;
+  /** 1 = best article for this image. */
+  rank: number;
+  /** Best similarity among the OTHER articles, or null when the target is the only article in the space. */
+  bestOtherSimilarity: number | null;
+}
+
 export interface SavedEvaluation {
   articleId: string;
   jobId: string;
@@ -73,12 +82,19 @@ export interface MatchStore {
   upsertClassification(imageId: string, c: StoredClassification, rawOutput: unknown): Promise<void>;
   listImageEmbeddingSpaces(imageId: string): Promise<EmbeddingSpace[]>;
   listArticleEmbeddingSpaces(): Promise<EmbeddingSpace[]>;
+  listEmbeddingSpacesForArticle(articleId: string): Promise<EmbeddingSpace[]>;
   hasImageEmbedding(imageId: string, space: EmbeddingSpace): Promise<boolean>;
   hasArticleEmbedding(articleId: string, space: EmbeddingSpace): Promise<boolean>;
   upsertImageEmbedding(imageId: string, vector: number[], space: EmbeddingSpace): Promise<void>;
   upsertArticleEmbedding(articleId: string, vector: number[], space: EmbeddingSpace): Promise<void>;
   /** Nearest articles to the image by cosine similarity, restricted to embeddings in the SAME space. */
   findNearestArticles(imageId: string, space: EmbeddingSpace, limit: number): Promise<Candidate[]>;
+  /**
+   * Exact similarity, rank and runner-up for ONE target article against the image, in one embedding space. Ranking
+   * is over every article embedded in that space (NaN scores excluded), ties broken by article id, which is the
+   * same order the top-K ranking uses. Returns null when the target has no embedding in the space.
+   */
+  getPairContext(imageId: string, articleId: string, space: EmbeddingSpace): Promise<PairContext | null>;
   hasEvaluations(imageId: string): Promise<boolean>;
   /** ALL records are persisted in one transaction or none are. Returned in the same order as `records`. */
   saveEvaluations(records: EvaluationRecord[]): Promise<SavedEvaluation[]>;

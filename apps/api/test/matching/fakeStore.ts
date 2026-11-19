@@ -7,6 +7,7 @@ import {
   type EvaluationRecord,
   type ImageRow,
   type MatchStore,
+  type PairContext,
   type SavedEvaluation,
   type StoredClassification,
   type StoredEvaluation,
@@ -66,6 +67,26 @@ export class FakeStore implements MatchStore {
   }
   async listArticleEmbeddingSpaces() {
     return [...this.articleVectors.values()].flat().map((e) => e.space);
+  }
+  async listEmbeddingSpacesForArticle(articleId: string) {
+    return (this.articleVectors.get(articleId) ?? []).map((e) => e.space);
+  }
+  async getPairContext(imageId: string, articleId: string, space: EmbeddingSpace): Promise<PairContext | null> {
+    const q = (this.imageVectors.get(imageId) ?? []).find((e) => sameSpace(e.space, space));
+    if (!q) return null;
+    const sims = new Map<string, number>();
+    for (const [id, vecs] of this.articleVectors) {
+      const v = vecs.find((e) => sameSpace(e.space, space));
+      if (v) sims.set(id, cosineSimilarity(q.vector, v.vector));
+    }
+    const target = sims.get(articleId);
+    if (target === undefined) return null;
+    const valid = [...sims].filter(([, s]) => !Number.isNaN(s));
+    const rank = Number.isNaN(target)
+      ? valid.length + 1
+      : 1 + valid.filter(([id, s]) => s > target || (s === target && id < articleId)).length;
+    const others = valid.filter(([id]) => id !== articleId).map(([, s]) => s);
+    return { similarity: target, rank, bestOtherSimilarity: others.length ? Math.max(...others) : null };
   }
   async hasImageEmbedding(imageId: string, s: EmbeddingSpace) {
     return (this.imageVectors.get(imageId) ?? []).some((e) => sameSpace(e.space, s));

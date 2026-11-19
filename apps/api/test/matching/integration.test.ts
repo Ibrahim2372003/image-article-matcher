@@ -116,7 +116,7 @@ describe.skipIf(!DB_URL)("matching on real PostgreSQL + pgvector (disposable sch
     await admin?.end();
   });
 
-  it("migrations 001 and 002 apply; 002 objects exist with the right types; re-running is a no-op", async () => {
+  it("all migrations apply; the 002 objects exist with the right types; re-running is a no-op", async () => {
     const tables = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = $1", [
       schema,
     ]);
@@ -154,7 +154,10 @@ describe.skipIf(!DB_URL)("matching on real PostgreSQL + pgvector (disposable sch
       client.release();
     }
     const applied = await pool.query("SELECT version FROM schema_migrations ORDER BY version");
-    expect(applied.rows.map((r) => r.version)).toEqual([1, 2]);
+    // Derived from the migration files (not hard-coded) so adding a migration cannot silently break this test.
+    const files = (await loadMigrations(DIR)).map((m) => m.version);
+    expect(applied.rows.map((r) => r.version)).toEqual(files);
+    expect(files.slice(0, 2)).toEqual([1, 2]);
   });
 
   it("end to end: prepare -> pgvector ranking -> guard -> persisted accepted AND rejected rows, audited", async () => {

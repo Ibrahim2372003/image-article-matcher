@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DECISIONS, EMBEDDING_DIMENSION, JOB_STATUSES } from "./constants.js";
+import { DECISIONS, EMBEDDING_DIMENSION, JOB_STATUSES, REASON_CODES, type ReasonCode } from "./constants.js";
 
 /** Relative server-side image path: no absolute paths, no '..', no backslashes. */
 export const ImagePathSchema = z
@@ -70,3 +70,53 @@ export type Health = z.infer<typeof HealthSchema>;
 export function formatZodError(err: z.ZodError): string {
   return err.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ");
 }
+
+/** API contract for submitted jobs (milestone 5). Timestamps are ISO-8601 strings. */
+export const JobReasonSchema = z.object({
+  code: z.enum(Object.values(REASON_CODES) as [ReasonCode, ...ReasonCode[]]),
+  severity: z.enum(["review", "reject"]),
+  explanation: z.string(),
+  signals: z.record(z.unknown()),
+});
+
+export const JobUsageSummarySchema = z.object({
+  /** Real provider calls only; results reused from earlier attempts create no usage. */
+  calls: z.number().int().nonnegative(),
+  failedCalls: z.number().int().nonnegative(),
+  inputTokens: z.number().int().nonnegative().nullable(),
+  outputTokens: z.number().int().nonnegative().nullable(),
+  tokensEstimated: z.boolean(),
+  /** Sum of KNOWN call costs only; null when no call has a known cost. Never an invented price. */
+  estimatedCostUsd: z.number().nonnegative().nullable(),
+  /** false when at least one call's cost is unknown, i.e. estimatedCostUsd (if any) is a lower bound. */
+  costComplete: z.boolean(),
+});
+export type JobUsageSummary = z.infer<typeof JobUsageSummarySchema>;
+
+export const JobViewSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.literal("submission"),
+  status: JobStatusSchema,
+  attempts: z.number().int().nonnegative(),
+  maxAttempts: z.number().int().positive(),
+  articleId: z.string().uuid(),
+  imageId: z.string().uuid(),
+  /** null unless the guard produced a decision. A failed job NEVER has a decision. */
+  decision: DecisionSchema.nullable(),
+  similarity: z.number().nullable(),
+  reasons: z.array(JobReasonSchema),
+  signals: z.record(z.unknown()).nullable(),
+  policyVersion: z.string().nullable(),
+  embeddingModel: z.string().nullable(),
+  classification: VisionClassificationSchema.nullable(),
+  error: z.object({ code: z.string(), message: z.string() }).nullable(),
+  usage: JobUsageSummarySchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  startedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+});
+export type JobView = z.infer<typeof JobViewSchema>;
+
+export const JobSubmissionResponseSchema = z.object({ job: JobViewSchema, replayed: z.boolean() });
+export type JobSubmissionResponse = z.infer<typeof JobSubmissionResponseSchema>;

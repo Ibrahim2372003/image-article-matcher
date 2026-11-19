@@ -154,3 +154,6 @@ vite.config.ts.timestamp-*
 !.env.example
 dist/
 coverage/
+
+# local image storage (uploads) - never commit
+data/

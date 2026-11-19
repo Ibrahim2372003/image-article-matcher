@@ -11,6 +11,7 @@ import {
   type EvaluationRecord,
   type ImageRow,
   type MatchStore,
+  type PairContext,
   type SaveOutcome,
   type SavedEvaluation,
   type StoredClassification,
@@ -83,6 +84,40 @@ export class PgMatchStore implements MatchStore {
       "SELECT DISTINCT embedding_model, task_type FROM article_embeddings ORDER BY 1, 2",
     );
     return rows.map(toSpace);
+  }
+
+  async listEmbeddingSpacesForArticle(articleId: string): Promise<EmbeddingSpace[]> {
+    const { rows } = await this.db.query<SpaceRow>(
+      "SELECT DISTINCT embedding_model, task_type FROM article_embeddings WHERE article_id = $1 ORDER BY 1, 2",
+      [articleId],
+    );
+    return rows.map(toSpace);
+  }
+
+  async getPairContext(imageId: string, articleId: string, s: EmbeddingSpace): Promise<PairContext | null> {
+    // `valid` drops NaN (NaN <> NaN) so a degenerate vector can neither outrank the target nor become its runner-up.
+    const { rows } = await this.db.query<{ similarity: number; match_rank: string; best_other: number | null }>(
+      `WITH q AS (SELECT embedding FROM image_embeddings WHERE image_id = $1 AND embedding_model = $2 AND task_type = $3),
+            sims AS (SELECT ae.article_id, 1 - (ae.embedding <=> q.embedding) AS sim
+                     FROM article_embeddings ae CROSS JOIN q
+                     WHERE ae.embedding_model = $2 AND ae.task_type = $3),
+            t AS (SELECT sim FROM sims WHERE article_id = $4),
+            valid AS (SELECT article_id, sim FROM sims WHERE sim = sim)
+       SELECT t.sim AS similarity,
+              CASE WHEN t.sim = t.sim
+                   THEN 1 + (SELECT count(*) FROM valid v WHERE v.sim > t.sim OR (v.sim = t.sim AND v.article_id < $4))
+                   ELSE (SELECT count(*) FROM valid) + 1 END AS match_rank,
+              (SELECT max(sim) FROM valid WHERE article_id <> $4) AS best_other
+       FROM t`,
+      [imageId, s.model, s.taskType, articleId],
+    );
+    const r = rows[0];
+    if (!r) return null;
+    return {
+      similarity: Number(r.similarity),
+      rank: Number(r.match_rank),
+      bestOtherSimilarity: r.best_other === null ? null : Number(r.best_other),
+    };
   }
 
   async hasImageEmbedding(imageId: string, s: EmbeddingSpace): Promise<boolean> {
@@ -209,9 +244,9 @@ export class PgMatchStore implements MatchStore {
     // Placeholders: $1 provider $2 model $3 prediction $4 similarity $5 decision $6 reasons $7 policy_version
     // $8 policy_config $9 signals $10 embedding_model $11 status | $12 article_id $13 image_id $14 key
     const ins = await client.query<{ id: string }>(
-      `INSERT INTO analysis_jobs (article_id, image_id, idempotency_key, status, model_provider, model_name, model_prediction,
+      `INSERT INTO analysis_jobs (article_id, image_id, idempotency_key, kind, status, model_provider, model_name, model_prediction,
          similarity, decision, decision_reasons, policy_version, policy_config, guard_signals, embedding_model, completed_at)
-       VALUES ($12, $13, $14, $11, $1, $2, $3::jsonb, $4, $5, $6::jsonb, $7, $8::jsonb, $9::jsonb, $10, now())
+       VALUES ($12, $13, $14, 'suggestion', $11, $1, $2, $3::jsonb, $4, $5, $6::jsonb, $7, $8::jsonb, $9::jsonb, $10, now())
        ON CONFLICT (idempotency_key) DO NOTHING RETURNING id`,
       [
         v.provider,

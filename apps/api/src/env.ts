@@ -21,6 +21,23 @@ export const EnvSchema = z.object({
   AI_TIMEOUT_MS: num(30_000).pipe(z.number().int().min(1_000).max(300_000)),
   API_KEY: z.string().min(16, "API_KEY must be at least 16 characters").optional(),
   MAX_UPLOAD_BYTES: num(5 * 1024 * 1024).pipe(z.number().int().positive()),
+  JOB_MAX_ATTEMPTS: num(3).pipe(z.number().int().min(1).max(10)),
+  JOB_BACKOFF_BASE_MS: num(5_000).pipe(z.number().int().min(100).max(3_600_000)),
+  JOB_BACKOFF_MAX_MS: num(300_000).pipe(z.number().int().min(100).max(86_400_000)),
+  WORKER_CONCURRENCY: num(1).pipe(z.number().int().min(1).max(10)),
+  JOB_STALE_QUEUED_MS: num(60_000).pipe(z.number().int().min(1_000)),
+  JOB_STALE_PROCESSING_MS: num(600_000).pipe(z.number().int().min(1_000)),
+  JOB_RECONCILE_INTERVAL_MS: num(30_000).pipe(z.number().int().min(1_000)),
+  SHUTDOWN_TIMEOUT_MS: num(60_000).pipe(z.number().int().min(1_000).max(600_000)),
+  QUEUE_PUBLISH_TIMEOUT_MS: num(3_000).pipe(z.number().int().min(100).max(60_000)),
+  QUEUE_NAME: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,64}$/, "QUEUE_NAME may only contain letters, digits, _ and -")
+    .default("image-article-analysis"),
+  IMAGE_STORAGE_DIR: z.string().min(1).default("./data/images"),
+  AI_PRICING_JSON: z.string().optional(),
+  RATE_LIMIT_MAX: num(30).pipe(z.number().int().min(1).max(100_000)),
+  RATE_LIMIT_WINDOW_MS: num(60_000).pipe(z.number().int().min(1_000).max(3_600_000)),
   GUARD_MIN_CONFIDENCE: optNum,
   GUARD_MIN_SIMILARITY: optNum,
   GUARD_MIN_MARGIN: optNum,
@@ -41,8 +58,21 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     throw new Error(`Invalid environment configuration: ${msg}`);
   }
   const env = parsed.data;
+  if (env.JOB_BACKOFF_MAX_MS < env.JOB_BACKOFF_BASE_MS) {
+    throw new Error("Invalid environment configuration: JOB_BACKOFF_MAX_MS must be >= JOB_BACKOFF_BASE_MS");
+  }
   if (env.AI_PROVIDER === "gemini" && !env.GEMINI_API_KEY) {
     throw new Error("Invalid environment configuration: GEMINI_API_KEY is required when AI_PROVIDER=gemini");
   }
   return env;
+}
+
+/**
+ * The API fails CLOSED: without an API key every protected route answers 503. In production it also refuses to
+ * start, so a misconfigured deployment is noticed immediately instead of serving 503s.
+ */
+export function assertApiKeyConfigured(env: Pick<Env, "NODE_ENV" | "API_KEY">): void {
+  if (env.NODE_ENV === "production" && !env.API_KEY) {
+    throw new Error("Invalid environment configuration: API_KEY is required when NODE_ENV=production");
+  }
 }

@@ -50,3 +50,24 @@ Match results reuse `analysis_jobs`, `reviews` and `job_audit_events`; no parall
 ## Connection module
 
 `apps/api/src/db/pool.ts`: lazy `pg.Pool` with bounded size/timeouts (`DB_*` env vars), idle-client error handler, `withTransaction`, `checkDatabase`, idempotent `closePool`. `server.ts` closes the HTTP server then the pool on SIGINT/SIGTERM. Use parameterized queries only (`$1, $2`).
+
+## Schema (003, milestone 5)
+
+| Change | Why |
+| --- | --- |
+| `analysis_jobs.kind` (`submission` / `suggestion`) | separates API-submitted jobs from milestone-4 match results; backfilled from the key prefix `suggest:`; M4 inserts now set it explicitly |
+| `analysis_jobs.request_fingerprint` | detects an Idempotency-Key reused with a different payload |
+| `analysis_jobs.enqueued_at` | NULL = never published to the queue (reconciler input) |
+| CHECK `failed_no_decision`, `open_no_decision`, `kind_matches_key` | a failed/open job cannot carry a decision; key namespace matches kind |
+| trigger `enforce_job_transition` | illegal status transitions are rejected by the database; `kind` is immutable |
+| `ai_usage` | one row per real provider call; cost NULL = unknown (CHECK ties a cost to a configured-rate basis) |
+
+### Pre-flight before `npm run db:migrate` on a database that already has data
+
+The migration backfills first and adds constraints after, inside one transaction: a violating row aborts it and leaves the schema at version 2 (tested). Check beforehand that these return 0:
+
+```sql
+SELECT count(*) FROM analysis_jobs WHERE status = 'failed' AND decision IS NOT NULL;
+SELECT count(*) FROM analysis_jobs
+ WHERE idempotency_key NOT LIKE 'suggest:%' AND status IN ('queued','processing') AND decision IS NOT NULL;
+```

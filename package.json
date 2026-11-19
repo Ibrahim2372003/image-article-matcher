@@ -21,7 +21,9 @@
     "dev:api": "npm run dev -w @iam/api",
     "dev:web": "npm run dev -w @iam/web",
     "db:migrate": "npm run db:migrate -w @iam/api",
-    "db:status": "npm run db:status -w @iam/api"
+    "db:status": "npm run db:status -w @iam/api",
+    "worker": "npm run worker -w @iam/api",
+    "dev:worker": "npm run dev:worker -w @iam/api"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

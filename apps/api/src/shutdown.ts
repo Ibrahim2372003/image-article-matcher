@@ -1,7 +1,7 @@
 import type { Server } from "node:http";
 
 export interface ShutdownOptions {
-  server: Pick<Server, "close">;
+  server?: Pick<Server, "close">;
   closers?: Array<() => Promise<void>>;
   timeoutMs?: number;
   exit?: (code: number) => void;
@@ -19,7 +19,7 @@ export function createShutdown(opts: ShutdownOptions): (signal: string) => Promi
     const timer = setTimeout(() => exit(1), timeoutMs);
     timer.unref();
     try {
-      await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+      if (server) await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
       for (const close of closers) await close();
       clearTimeout(timer);
       exit(0);
